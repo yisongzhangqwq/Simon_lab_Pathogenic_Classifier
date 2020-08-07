@@ -1,0 +1,75 @@
+import sys
+import requests
+import re
+import os
+import pandas as pd #Need to install pandas library and numpy：pip install numpy    pip install pandas
+
+
+GeneList = pd.read_table(os.path.dirname(__file__)+"/GeneName.txt",header = None,delim_whitespace=True) #Import a file named GeneName.txt containing a list of gene names
+NumOfGene = GeneList.shape[0] #Get the number of rows of the gene name DataFrame
+FailGene = 0 #Count the number of genes that cannot be queried
+
+for GeneRow in range(0, NumOfGene):
+        gene = ''.join(GeneList.iloc[GeneRow]) #Read gene name
+        # Simulate POST request and submit form to web page
+        url = 'http://hgmdtrial.biobase-international.com/hgmd/pro/print.php'
+        params = {
+        'gene': gene,  
+        'snp':'', 
+        'base': 'M',
+        'sort':'codon, amino, base', 
+        'snp':'', 
+        'legacy': '0'}
+        html = requests.post(url, params)
+        html.encoding = html.apparent_encoding
+        result = html.text
+        
+        #Sort the obtained strings and extract the text with regular expressions
+        result0 = result.replace('<tr><td><b>Accession</b></td><td class=', '') #Delete the first row of table content that does not contain data in the string, so that the regular expression will not match the content of the row
+        result1 = result0.replace('<i>', '')
+        result2 = result1.replace('</i>', '')#Remove delimiter for reference field
+        res = re.findall('<tr><td>(.*?)</td><td.*?>(.*?)</td><td>(.*?)</td><td.*?>(.*?)</td><td>(.*?)</td><td>(.*?)</td><td>(.*?)</td><td>(.*?)</td><td>(.*?)</td></tr>',result2, re.S)
+
+        #Crawl the data of cNDA related webpages and match them with regular expressions, and classify them into a tuple
+        cDNAhtml = requests.get('http://hgmdtrial.biobase-international.com/hgmd/pro/gene.php?gene='+gene)
+        cNDAresult = cDNAhtml.text
+        cDNAres1 = re.findall("<input type.*?submit.*? value='(.*?)'></form></td><td class='center'><form action='genomic.php' method='POST'>",cNDAresult, re.S)
+        cDNAres2 = re.findall('target.*?RefSeqGene2.*?>(.*?)</a></td>',cNDAresult, re.S)
+        cDNAtuple=[('', '', '', '', '', '', '', '', ''), ('cDNA sequence:', ''.join(cDNAres1), 'RefSeqGene:', ''.join(cDNAres2), '', '', '', '', '')]
+        
+        #Check whether the data is successfully obtained, if it fails, start to query the next one
+        if res==[]: 
+            print("Data of "+gene+" not found! Please check the input or network. ")
+            FailGene = FailGene+1
+            continue 
+        
+        #Organize and export all data
+        columns=[('Accession','HGMD mutation','','HGVS','','Variant class','Phenotype','Reference', 'Source')]
+        columns=columns+res+cDNAtuple #Merge tuples: header title, gene data and cDNA data
+        dataframe = pd.DataFrame(columns) #Convert to DataFrame format
+        dataframe_New = pd.DataFrame(res)
+        
+        #New requirement: extract HGVS column and add cDNAseq data
+        NewOutput = dataframe_New.loc[:,3] #Extract a single column and save it as a new DataFrame
+        NewOutputFilter = dataframe_New.loc[:,4] #Extract the rows used to determine whether to retain and save them as a new DataFrame
+        NumOfRow = NewOutput.shape[0] #Get the number of rows in the DataFrame
+        NewOutputResult = [] #Create an empty list to store the filtered data
+        for Row in range(0, NumOfRow):
+            Cache = NewOutput.iloc[Row]
+            Filter = NewOutputFilter.iloc[Row]
+            if Filter.find("*") != -1 or Filter.find("Not yet available") != -1: #Determine whether it contains *, and ignore nonsense mutation
+                    Row = Row + 1
+                    continue
+            NewOutputResult.append(''.join(cDNAres1)+':'+ Cache) #Add the value of cDNAseq for all elements in this column
+            Row = Row + 1
+        NewOutputResult_Frame = pd.DataFrame(NewOutputResult) #Convert the list of filtered data to DataFrame form
+
+        location =os.path.dirname(__file__)+"/"+gene+".csv"#Define the csv file storage path to the same directory of the .py program
+        location_txt =os.path.dirname(__file__)+"/"+gene+"_cNDA.txt"#Define the storage path of the txt file and create a cDNA folder in the same directory of the .py program
+        dataframe.to_csv(location,index=False,sep=',', header=0) #Export to csv file
+        NewOutputResult_Frame.to_csv(location_txt,index=False, sep='\t', header=0) #Export to txt file
+        print("Files of "+gene+" create successful! ")
+        
+        GeneRow = GeneRow + 1
+
+input("\nCreate "+ str(NumOfGene-FailGene) +" file(s) success,"+str(FailGene)+" file(s) failed. Press <enter> to exit") #Show success message
