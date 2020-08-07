@@ -1,0 +1,75 @@
+import sys
+import requests
+import re
+import os
+import pandas as pd #需要安装pandas库以及numpy依赖：pip install numpy    pip install pandas
+
+
+GeneList = pd.read_table(os.path.dirname(__file__)+"/GeneName.txt",header = None,delim_whitespace=True) #GD 6 新增需求：导入一个包含基因名称列表的、名为GeneName.txt的文件，自动查询
+NumOfGene = GeneList.shape[0] #获取基因名称DataFrame的行数
+FailGene = 0 #统计无法被查询的基因数量
+
+for GeneRow in range(0, NumOfGene):
+        gene = ''.join(GeneList.iloc[GeneRow]) #读取基因名
+        # 模拟POST请求，向网页提交表单
+        url = 'http://hgmdtrial.biobase-international.com/hgmd/pro/print.php'
+        params = {
+        'gene': gene,  
+        'snp':'', 
+        'base': 'M',
+        'sort':'codon, amino, base', 
+        'snp':'', 
+        'legacy': '0'}
+        html = requests.post(url, params)
+        html.encoding = html.apparent_encoding
+        result = html.text
+        
+        #整理获取的字符串，并用正则表达式提取文本
+        result0 = result.replace('<tr><td><b>Accession</b></td><td class=', '') #将字符串中不包含数据的第一行表格内容部分删除，使得正则表达式不会匹配该行内容
+        result1 = result0.replace('<i>', '')
+        result2 = result1.replace('</i>', '')#删除参考文献字段的分隔符
+        res = re.findall('<tr><td>(.*?)</td><td.*?>(.*?)</td><td>(.*?)</td><td.*?>(.*?)</td><td>(.*?)</td><td>(.*?)</td><td>(.*?)</td><td>(.*?)</td><td>(.*?)</td></tr>',result2, re.S)
+
+        #爬取cNDA相关网页的数据，并用正则表达式匹配，归类为一个元组
+        cDNAhtml = requests.get('http://hgmdtrial.biobase-international.com/hgmd/pro/gene.php?gene='+gene)
+        cNDAresult = cDNAhtml.text
+        cDNAres1 = re.findall("<input type.*?submit.*? value='(.*?)'></form></td><td class='center'><form action='genomic.php' method='POST'>",cNDAresult, re.S)
+        cDNAres2 = re.findall('target.*?RefSeqGene2.*?>(.*?)</a></td>',cNDAresult, re.S)
+        cDNAtuple=[('', '', '', '', '', '', '', '', ''), ('cDNA sequence:', ''.join(cDNAres1), 'RefSeqGene:', ''.join(cDNAres2), '', '', '', '', '')]
+        
+        #检查是否成功获取了数据，若失败则直接开始查询下一个
+        if res==[]: 
+            print("Data of "+gene+" not found! Please check the input or network. ")
+            FailGene = FailGene+1
+            continue #直接开始下一次循环
+        
+        #整理并导出所有数据
+        columns=[('Accession','HGMD mutation','','HGVS','','Variant class','Phenotype','Reference', 'Source')]
+        columns=columns+res+cDNAtuple #合并元组：表头标题、基因数据与cDNA数据
+        dataframe = pd.DataFrame(columns) #转换为DataFrame格式
+        dataframe_New = pd.DataFrame(res)
+        
+        #GD 5 中新增需求：提取HGVS列，添加cNDAseq数据
+        NewOutput = dataframe_New.loc[:,3] #提取单列，并保存为一个新的DataFrame
+        NewOutputFilter = dataframe_New.loc[:,4] #GD 7中需求，提取用于判断是否保留的行，并保存为一个新的DataFrame
+        NumOfRow = NewOutput.shape[0] #获取DataFrame的行数
+        NewOutputResult = [] #新建一个空列表，用于存放经过过滤后的数据
+        for Row in range(0, NumOfRow):
+            Cache = NewOutput.iloc[Row]
+            Filter = NewOutputFilter.iloc[Row]
+            if Filter.find("*") != -1 or Filter.find("Not yet available") != -1: #判断是否含有 * 号
+                    Row = Row + 1
+                    continue #跳出 if 循环
+            NewOutputResult.append(''.join(cDNAres1)+':'+ Cache) #为该列所有元素添加cDNAseq的值
+            Row = Row + 1
+        NewOutputResult_Frame = pd.DataFrame(NewOutputResult) #将存放过滤后数据的列表转换为 DataFrame 形式
+
+        location =os.path.dirname(__file__)+"/"+gene+".csv"#定义csv文件存储路径，到 .py 程序的同一目录下
+        location_txt =os.path.dirname(__file__)+"/"+gene+"_cNDA.txt"#定义txt文件存储路径，在 .py 程序的同一目录下创建cDNA文件夹
+        dataframe.to_csv(location,index=False,sep=',', header=0) #导出为csv文件
+        NewOutputResult_Frame.to_csv(location_txt,index=False, sep='\t', header=0) #导出为txt文件
+        print("Files of "+gene+" create successful! ")
+        
+        GeneRow = GeneRow + 1
+
+input("\nCreate "+ str(NumOfGene-FailGene) +" file(s) success,"+str(FailGene)+" file(s) failed. Press <enter> to exit") #显示成功信息
