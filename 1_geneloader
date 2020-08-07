@@ -73,3 +73,4 @@ for GeneRow in range(0, NumOfGene):
         GeneRow = GeneRow + 1
 
 input("\nCreate "+ str(NumOfGene-FailGene) +" file(s) success,"+str(FailGene)+" file(s) failed. Press <enter> to exit") #Show success message
+ 
