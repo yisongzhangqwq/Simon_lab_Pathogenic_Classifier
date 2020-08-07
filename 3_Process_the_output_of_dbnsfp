@@ -1,3 +1,4 @@
+#merge .txt.out of HGMD and gnomAD
 import glob
 import sys
 import pandas as pd
