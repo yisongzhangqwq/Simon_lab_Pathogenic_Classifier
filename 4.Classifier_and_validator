@@ -9,75 +9,78 @@ from sklearn.model_selection import train_test_split
 import os
 import glob
 
-np.set_printoptions(precision=2)
+np.set_printoptions(precision=2) #Set floating point precision
 #########################################################################
 '''testing the threshold, at which the best MCC is obtained, using 20% of the data'''
 
 # genes = ['g6pd','alas2','rs1','mtm1','otc','phex','f8','il2rg','l1cam','clcn5','ids','gla','abcd1','f9','gjb1','avpr2','pdha1','btk','ocrl','ndp','hprt1']
 # genes = ['dcx', 'frmd7', 'nyx', 'cd40lg', 'rpgr', 'porcn', 'rp2', 'gpr143', 'atrx', 'atp7a', 'pcdh19']
-current_file_path = os.getcwd()
-print(f"Current directory is {current_file_path}")
+current_file_path = os.getcwd() # Get the current path 
+print(f"Current directory is {current_file_path}") # Output current path
 
-genes_filename_list = glob.glob(f"{current_file_path}/merge_db/*_merged.tsv")  # find matched files
-genes = [name.split("\\")[-1].split('_')[0] for name in genes_filename_list]  # use filenames to get genenames
-genes.sort()
+genes_filename_list = glob.glob(f"{current_file_path}/merge_db/*_merged.tsv")  # Find the tsv file under merge_db
+genes = [name.split("\\")[-1].split('_')[0] for name in genes_filename_list]  # Get the name of the tsv file, just take ABCA4
+genes.sort() # Sort the obtained file names
 ##############################################
 genes_transcripts = pd.read_excel('genes_list.xlsx')  # where transcript IDs for transcript of interest os stored
-vest4_mcc_identified_for_all_genes = []
-revel_mcc_identified_for_all_genes = []
-mean_vest4_threshold_identified_using_training_data = []
-mean_revel_threshold_identified_using_training_data = []
-stdev_revel_threshold_identified_using_training_data = []
-stdev_vest4_threshold_identified_using_training_data = []
-revel_mcc_mean_for_all_genes = []
-vest4_mcc_mean_for_all_genes = []
-revel_mcc_stdev_for_all_genes = []
-vest4_mcc_stdev_for_all_genes = []
-revel_precision_tested_mean_for_all_genes = []
-vest4_precision_tested_mean_for_all_genes = []
-revel_precision_tested_stdev_for_all_genes = []
-vest4_precision_tested_stdev_for_all_genes = []
-revel_recall_tested_mean_for_all_genes = []
-vest4_recall_tested_mean_for_all_genes = []
-revel_recall_tested_stdev_for_all_genes = []
-vest4_recall_tested_stdev_for_all_genes = []
-revel_accuracy_tested_mean_for_all_genes = []
-vest4_accuracy_tested_mean_for_all_genes = []
-revel_accuracy_tested_stdev_for_all_genes = []
-vest4_accuracy_tested_stdev_for_all_genes = []
-original_revel_precision_tested_mean_for_all_genes = []
-original_revel_precision_tested_stdev_for_all_genes = []
-original_revel_recall_tested_mean_for_all_genes = []
-original_revel_recall_tested_stdev_for_all_genes = []
-original_revel_accuracy_tested_mean_for_all_genes = []
-original_revel_accuracy_tested_stdev_for_all_genes = []
+vest4_mcc_identified_for_all_genes = [] # vest4 mcc of all genes
+revel_mcc_identified_for_all_genes = [] # revel mcc of all genes
+mean_vest4_threshold_identified_using_training_data = [] # vest4 mean of training data
+mean_revel_threshold_identified_using_training_data = [] # revel the mean of the training data
+stdev_revel_threshold_identified_using_training_data = [] # vest4 Standard deviation of training data
+stdev_vest4_threshold_identified_using_training_data = [] # revel Standard deviation of training data
+revel_mcc_mean_for_all_genes = [] # revel the mean of all data
+vest4_mcc_mean_for_all_genes = [] # vest4 The mean of all data
+revel_mcc_stdev_for_all_genes = [] # revel the standard deviation of all data
+vest4_mcc_stdev_for_all_genes = [] # vest4 Standard deviation of all data
+revel_precision_tested_mean_for_all_genes = [] # revel average accuracy of test data
+vest4_precision_tested_mean_for_all_genes = [] # vest4 Average accuracy of test data
+revel_precision_tested_stdev_for_all_genes = [] # revel Average standard deviation of test data
+vest4_precision_tested_stdev_for_all_genes = [] # vest4 Average standard deviation of test data
+revel_recall_tested_mean_for_all_genes = [] # revel Average recall rate of test data
+vest4_recall_tested_mean_for_all_genes = [] # vest4 Average recall rate of test data
+revel_recall_tested_stdev_for_all_genes = [] # revel The standard deviation of the recall rate of the test data
+vest4_recall_tested_stdev_for_all_genes = [] # vest4 The standard deviation of the recall rate of the test data
+revel_accuracy_tested_mean_for_all_genes = [] # revel The mean value of the accuracy of the test data
+vest4_accuracy_tested_mean_for_all_genes = []# vest4 The mean value of the accuracy of the test data
+revel_accuracy_tested_stdev_for_all_genes = []# revel The standard deviation of the accuracy of the test data
+vest4_accuracy_tested_stdev_for_all_genes = []# vest4 The standard deviation of the accuracy of the test data
+original_revel_precision_tested_mean_for_all_genes = [] # The average accuracy of the original revel test data
+original_revel_precision_tested_stdev_for_all_genes = [] # Standard deviation of accuracy of original revel test data
+original_revel_recall_tested_mean_for_all_genes = [] # The average recall rate of the original revel test data
+original_revel_recall_tested_stdev_for_all_genes = [] # Original revel test data recall standard deviation
+original_revel_accuracy_tested_mean_for_all_genes = [] # The original revel test data accuracy rate average
+original_revel_accuracy_tested_stdev_for_all_genes = [] # Standard deviation of accuracy of original revel test data
 
-bad_files_first = []
+bad_files_first = [] #Which files are useless, just don’t contain the data we need
 bad_files_second = []
 results_file = open(current_file_path + '/results_2020_8_3.tsv', 'w')
 results_file.write(f"Genes\tnumbers of gnomAD\tnumbers of HGMD\trevel default threshold\trevel MCC at default threshold\tvest4 "
                    f"default threshold\tvest4 MCC at default threshold\tGene-specific threshold\tOptimized "
                    f"MCC\tGene-specific "
                    f"threshold\tOptimized MCC\n")
-mean_and_std_file_default = open(current_file_path + '/mean_and_std_default.tsv', 'w')
-mean_and_std_file_optimized = open(current_file_path + '/mean_and_std_optimized.tsv', 'w')
+                  # results_2020_8_3.tsv stores the MCC and threshold corresponding to different revel and vest4 and the optimized MCC value
+mean_and_std_file_default = open(current_file_path + '/mean_and_std_default.tsv', 'w')# Write the default mean and standard deviation values
+mean_and_std_file_optimized = open(current_file_path + '/mean_and_std_optimized.tsv', 'w') # Write needs to optimize the mean and standard deviation values
 # f'{gene}\t{mean_revel}\t{std_revel}\t{mean_vest4}\t{std_vest4}\n'
 mean_and_std_file_default.write(f"gene\tnumbers of gnomAD\tnumbers of HGMD\tmean revel\tstd revel\tmean vest4\tstd vest4\n")
 mean_and_std_file_optimized.write(f"gene\tnumbers of gnomAD\tnumbers of HGMD\tmean revel\tstd revel\tmean vest4\tstd vest4\n")
 for gene in genes:
     print(f"Processing {gene}_merged.tsv")
+    #Read data, use tab as separator
     predictions_data = pd.read_csv(current_file_path + '/merge_db/' + gene + '_merged.tsv', sep='\t', index_col=None)
+    # Create a reslut file, each _merged.tsv will have this file
     file_to_write = open(current_file_path + '/results/' + gene + '_results.txt', 'w')
 
     predictions_data_noTestClass = predictions_data[
         predictions_data['class'] != 'test']  # exclude variants labelled as "test"
-    vest4_thresholds_identified_using_training_data = []
-    revel_thresholds_identified_using_training_data = []
+    vest4_thresholds_identified_using_training_data = [] # vest4 Threshold on training data
+    revel_thresholds_identified_using_training_data = [] # revel Threshold on training data
     revel_mcc_at_identified_threshold = []  # 10 validated mcc scores collected
     vest4_mcc_at_identified_threshold = []  # 10 validated mcc scores collected
-    revel_precision_tested_at_identified_threshold = []
-    revel_recall_tested_at_identified_threshold = []
-    revel_accuracy_tested_at_identified_threshold = []
+    revel_precision_tested_at_identified_threshold = [] #Accuracy on the test set at the default threshold
+    revel_recall_tested_at_identified_threshold = [] # Recall rate
+    revel_accuracy_tested_at_identified_threshold = [] # Accuracy
     vest4_precision_tested_at_identified_threshold = []
     vest4_recall_tested_at_identified_threshold = []
     vest4_accuracy_tested_at_identified_threshold = []
@@ -102,9 +105,11 @@ for gene in genes:
     transcript = genes_transcripts.query('gene==@gene')['transcript'].iloc[0].strip()  # obtaining the transcript used
     # print(f"transcript retrieved: '{transcript}'\n")
 
-    predictions_data_noTestClass = predictions_data_noTestClass[
+    predictions_data_noTestClass = predictions_data_noTestClass[ # Note that the training data is taken here
         predictions_data_noTestClass.Ensembl_transcriptid.str.contains(transcript)]
-    predictions_data_noTestClass = predictions_data_noTestClass[predictions_data_noTestClass.REVEL_score != '.']
+    # Find those lines in the Ensembl_transcriptid of the merge that are the same as the transcript value obtained before
+    # For example, ENST00000536513, find these lines, which is the same transcript data we need as genes_list
+    predictions_data_noTestClass = predictions_data_noTestClass[predictions_data_noTestClass.REVEL_score != '.'] # Exclude empty values in these lines
 
     #remove 0 when 1 exits
     pathogenic_positions = predictions_data_noTestClass[predictions_data_noTestClass.class_binary !=0]['pos(1-based)'].tolist()
@@ -116,11 +121,13 @@ for gene in genes:
         count_jumped += 1
         file_to_write.close()
         continue
-    for j in range(10):
+    for j in range(10):#Perform data sampling ten times, use train_test_split to split the data ten times in different ways, and divide it into a data set and a test set
         break_indicator = False
         random_seed = j
         '''separate a subset and form the test subset'''
         training_set, test_set, y_train, y_test = train_test_split(predictions_data_noTestClass,
+        # Split the sample
+        # Training set 0.75, test set 0.25, random seed determination
                                                                    range(len(predictions_data_noTestClass)),
                                                                    test_size=0.25, random_state=j)
         '''a different approach to sampling data'''
@@ -129,14 +136,14 @@ for gene in genes:
         # training_set_df = predictions_data.loc[~predictions_data.index.isin(test_set_df.index)] #the remaining data, i.e. whatever is not in test set
         # training_set = training_set_df.to_csv('/Users/mdefsss2/x_linked_genes/'+gene+'/split_training_set.csv', sep='\t')
         file_to_write.write(f"\n*************************   Run: {str(random_seed)} {gene.upper()}\n")
-        pathogenicity_threshold_numbers = 21
-        pathogenicity_threshold = [i for i in np.linspace(0, 1, pathogenicity_threshold_numbers)]
+        pathogenicity_threshold_numbers = 21 # Pathogenicity threshold number
+        pathogenicity_threshold = [i for i in np.linspace(0, 1, pathogenicity_threshold_numbers)] # From 0 to 1, find 21 data evenly divided
         # data = pd.read_excel('/Users/mdefsss2/' + gene + '/' + gene + '_analysis.xlsx')
         # training_set = pd.read_csv('/Users/mdefsss2/x_linked_genes/' + gene + '/' + data_set + '_set.csv')
-        var_class = training_set['class'].tolist()
-        classes = training_set['class_binary'].tolist()
-        ensembl_transcripts = training_set['Ensembl_transcriptid'].tolist()
-        coordinates = training_set['pos(1-based)'].tolist()
+        var_class = training_set['class'].tolist() # Extract the category information of the training data, whether it is benign or pathogenic
+        classes = training_set['class_binary'].tolist() # The corresponding 0 and 1 are extracted
+        ensembl_transcripts = training_set['Ensembl_transcriptid'].tolist() # The tag id corresponding to the training data is extracted
+        coordinates = training_set['pos(1-based)'].tolist() 
         revel_scores = training_set['REVEL_score'].tolist()
         vest4_scores = training_set['VEST4_score'].tolist()
         list_index_to_drop = []
@@ -151,14 +158,14 @@ for gene in genes:
             if ';' in strings:
                 if_semicolon_in = True
                 # print(f'Multiple transcripts found when processing {ensembl_transcripts[i]}')
-                num_of_predictions = ensembl_transcripts[i].split(';')
+                num_of_predictions = ensembl_transcripts[i].split(';') #There are semicolons, there are multiple inspection orders, used; split
                 vest4_pred = vest4_scores[i].split(';')
                 count_found_prediction = 0
                 for k in range(len(num_of_predictions)):
-                    if num_of_predictions[k] == transcript:
+                    if num_of_predictions[k] == transcript: # If the corresponding transcript in genes_list.xlsx is the same as ensembl_transcripts
                         count_found_prediction += 1
                         try:
-                            vest4_predictions.append(float(vest4_pred[k]))
+                            vest4_predictions.append(float(vest4_pred[k])) # Take the corresponding score in vest4_pred corresponding to the value of ensembl_transcripts
                         except ValueError as e:
                             # transcript_found = False
                             # print(f"Error occurred while converting {vest4_pred[k]}\nDropping this row!")
@@ -170,7 +177,7 @@ for gene in genes:
 
                     # elif transcript not in num_of_predictions:
                     # print('Transcript of interest MISSING!! at: ', coordinates[k])
-                if count_found_prediction != 1:
+                if count_found_prediction != 1:# If the corresponding score is not 1, the following is an operation corresponding to the score not found
                     count_error += 1
                     print(f'Multiple transcripts found when processing {ensembl_transcripts[i]}')
                     if count_found_prediction == 0:
@@ -182,7 +189,7 @@ for gene in genes:
             elif strings.strip() == transcript.strip():
                 vest4_predictions.append(float(vest4_scores[i]))
             else:
-                count_error += 1
+                count_error += 1 # Take the error mark and add 1
                 print(f"Unexpected situation encountered!\nAn error occurred when processing {ensembl_transcripts[i]}")
                 print(f"The string is '{strings}' while '{transcript.strip()}' is expected.")
                 print(f"Semicolon : {if_semicolon_in}\n")
@@ -199,7 +206,7 @@ for gene in genes:
         vest4_predicted_pathogenic = []
         vest4_predicted_nonpathogenic = []
 
-        list_index_to_drop.sort(reverse=True)
+        list_index_to_drop.sort(reverse=True) #Here is to delete the data whose scores are not found above
         if list_index_to_drop:
             # print(f"Removing these index :{list_index_to_drop}")
             print(f"Going to remove {len(list_index_to_drop)} row(s)")
@@ -209,17 +216,18 @@ for gene in genes:
             list_index_to_drop = []
 
         '''Mann Whitney U test'''
-        if len(classes) == 0:
+        if len(classes) == 0: # If none of the data is retrieved
             if gene not in bad_files_second:
-                bad_files_second.append(gene)
+                bad_files_second.append(gene) # Directly join the invalid queue
             print(f"{gene}_merged.tsv has 0 valid row!\nJumping this file!")
-            break_indicator = True
+            break_indicator = True # The interrupt indicator is marked as true and jump out of this loop directly
             break
         if len(vest4_predictions) < len(classes):
+        # If the score row obtained now is smaller than the row of the class data, an error occurs because invalid data has been deleted above, and all lengths should be equal
             print(
                 f"The length of vest4_predictions is smaller than classes!\nLengths for them is {len(vest4_predictions)} and {len(classes)} respectively.\nExiting!\n")
-            sys.exit()
-        for i in range(len(classes)):
+            sys.exit() # Exit code operation, program error
+        for i in range(len(classes)): # If no error occurs, start traversing each row of data
             if classes[i] == 1:
                 revel_predicted_pathogenic.append(revel_scores[i])
                 vest4_predicted_pathogenic.append(vest4_predictions[i])
@@ -247,10 +255,10 @@ for gene in genes:
         prec_revel = []
         rec_revel = []
 
-        for k in range(len(pathogenicity_threshold)):
+        for k in range(len(pathogenicity_threshold)): #21 thresholds, respectively calculate the corresponding mcc, see which is the largest
             revel_pred = []
-            for i in range(len(revel_scores)):
-                if float(revel_scores[i]) >= pathogenicity_threshold[k]:
+            for i in range(len(revel_scores)): # Traverse all the data of REVEL_score, each threshold pair should traverse all scores
+                if float(revel_scores[i]) >= pathogenicity_threshold[k]: #One of the scores is greater than or equal to the threshold
                     i = 1
                     revel_pred.append(i)
                 elif float(revel_scores[i]) < pathogenicity_threshold[k]:
@@ -271,15 +279,20 @@ for gene in genes:
                     # print('counter_fp: ', counter_fp)
                 elif float(revel_predicted_nonpathogenic[l]) < pathogenicity_threshold[k]:
                     counter_tn += 1
+                    # After calculating all the quantities, start recording the corresponding quantity
+            # If the score is greater than the threshold, that is, the number of rows is not 0, then add the proportion of the diseased rows to the total number of rows in the queue, otherwise add 0
             prec_revel.append(
                 counter_tp / (counter_tp + counter_fp) if counter_tp + counter_fp != 0 and counter_tp != 0 else 0)
+            # If the number of diseased rows is not 0, add the proportion of diseased rows that are greater than the threshold to the total number of diseased rows into the queue
             rec_revel.append(counter_tp / (counter_tp + counter_fn) if counter_tp + counter_fn != 0 else 0)
             if counter_tp + counter_tn + counter_fp + counter_fn != 0:
+                # Calculate the accuracy rate, that is, if the pathogenic line is greater than the threshold, and the non-pathogenic line is less than the threshold, it is correct, and other predictions are wrong. Calculate the accuracy rate under this threshold
                 accuracy = (counter_tp + counter_tn) / (counter_tp + counter_tn + counter_fp + counter_fn)
             else:
                 accuracy = 0
-            if len(binary_class) != len(revel_pred):
-                print(len(binary_class), len(revel_pred))
+            if len(binary_class) != len(revel_pred):# If the total number of training rows is not equal to the total number of rows added above, there is a problem with the data
+                print(len(binary_class), len(revel_pred)) # Output the number of lines, normally it will not be output here
+                # Note here that revel_pred is 0 and 1 predicted by the threshold, while binary_class is a positive value
             revel_mcc = matthews_corrcoef(binary_class, revel_pred)
             if pathogenicity_threshold[k] == 0.5:  # suggested threshold
                 # print('REVEL Precision @ ', pathogenicity_threshold[k], '=', prec_revel[k])
@@ -293,7 +306,7 @@ for gene in genes:
             # print('matthews_corr_coef (REVEL) @ '+str(pathogenicity_threshold[k])+': ', revel_mcc)
             # print('Precision', prec_revel[k])
             # print('Recall', rec_revel[k])
-            revel_MCC_at_diff_thresholds.append(revel_mcc)
+            revel_MCC_at_diff_thresholds.append(revel_mcc)# If it is not 0.5, let revel_MCC_at_diff_thresholds directly add the value of revel_mcc
 
 
             for d in range(len(revel_MCC_at_diff_thresholds) - 1):  # the optimum MCC score
@@ -305,15 +318,16 @@ for gene in genes:
                         revel_max_mcc_threshold = pathogenicity_threshold[k]
                         # print('REVEL Precision @ ', revel_max_mcc_threshold, '=', counter_tp / (counter_tp + counter_fp))
                         # print('REVEL Recall @ ', revel_max_mcc_threshold, '=', counter_tp / (counter_tp + counter_fn))
+    ######### Up to the above, it is calculated under 21 thresholds, the maximum mcc and threshold obtained by the revel method
 
         string_to_write = '#' + gene.upper() + ' REVEL MCC: ' + str(revel_max_mcc) + ' @ ' + str(
             revel_max_mcc_threshold) + '\n'
         file_to_write.write(string_to_write)
-
+# Get the maximum mcc and threshold of revel, then write this data into the reslut file
         revel_thresholds_identified_using_training_data.append(revel_max_mcc_threshold)
         revel_mcc_identified_for_all_genes.append(revel_max_mcc)
 
-        vest4_MCC_at_diff_thresholds = []
+        vest4_MCC_at_diff_thresholds = []# Now start to calculate the maximum mcc and thresholds of the vest4 method
         vest4_max_mcc = 0
         vest4_max_mcc_threshold = 0
         prec_vest4 = []
