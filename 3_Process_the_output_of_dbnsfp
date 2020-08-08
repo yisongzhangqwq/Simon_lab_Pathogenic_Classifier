@@ -27,7 +27,7 @@ def process_file(gene_name):
     df1 = pd.concat([df1, df2], ignore_index=True)
     print(f"Sample for {gene_name}:\n")
     print(df1.sample(10))
-    df1.to_csv(gene_name + "_merged.tsv", index=False, header=True, float_format="%.f", sep="\t")
+    df1.to_csv(gene_name + "_merged.tsv", index=False, header=True, float_format="%g", sep="\t")
     print(f'successfully processed {gene_name}!\n')
 
 def main():
