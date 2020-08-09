@@ -1,4 +1,7 @@
 #! / usr / bin / env python3
+# This script was originally written by Shalaw Sallah, and then I optimized the script according to the requirements of the project.
+# shalaw.sallah@postgrad.manchester.ac.uk
+# yisong.zhang-3@postgrad.manchester.ac.uk
 import numpy as np
 import sys
 import pandas as pd
